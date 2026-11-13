@@ -29,10 +29,10 @@ label{font-size:14px;color:#dce7f5}input[type=range]{width:150px;padding:0}
 <section class="panel">
   <div class="row">
     <button id="hostBtn">🎮 नया Room बनाओ</button>
-    <input id="roomInput" placeholder="दोस्त का Player ID / Room Code">
+    <input id="roomInput" placeholder="दोस्त का Room ID (जैसे RH1234)">
     <button id="joinBtn">Room Join करो</button>
   </div>
-  <div id="myid">आपका Player ID: Room बनाने के बाद यहाँ दिखेगा</div>
+  <div id="myid">Room बनाने के बाद आपका छोटा ID यहाँ दिखेगा</div>
   <div class="row"><button id="copyBtn" disabled>📋 Player ID Copy</button><button id="restartBtn" disabled>↻ नया गेम</button></div>
   <div id="status">पहले नया Room बनाएं या दोस्त के Room ID से जुड़ें।</div>
   <div class="score" id="score">आप: 0 | दोस्त: 0</div>
@@ -55,7 +55,7 @@ label{font-size:14px;color:#dce7f5}input[type=range]{width:150px;padding:0}
 const canvas=document.getElementById('board'),ctx=canvas.getContext('2d');
 const $=id=>document.getElementById(id);
 const W=600, CENTER=300, R=13, STR=17, POCKETS=[[42,42],[558,42],[42,558],[558,558]];
-let peer=null,conn=null,isHost=false,connected=false,myPlayer=0,game=null,lastSend=0,anim=0;
+let peer=null,conn=null,isHost=false,connected=false,myPlayer=0,game=null,lastSend=0,anim=0,activeRoomId='';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function initialGame(){
   const coins=[];
@@ -67,7 +67,7 @@ function initialGame(){
   return {coins,turn:1,score:[0,0],moving:false,over:false,message:'Player 1 की बारी'};
 }
 function status(t){$('status').textContent=t;}
-function makeShortRoomId(){return 'ROHIT'+Math.floor(1000+Math.random()*9000);}
+function makeShortRoomId(){return 'RH'+Math.floor(1000+Math.random()*9000);}
 function setControls(){
   const can=connected&&game&&!game.over&&!game.moving&&game.turn===myPlayer;
   $('shootBtn').disabled=!can;$('pos').disabled=!can;$('power').disabled=!can;$('aim').disabled=!can;
@@ -161,17 +161,26 @@ function shoot(){
 }
 function startHost(){
  if(peer){peer.destroy();peer=null;}conn=null;connected=false;isHost=true;myPlayer=1;game=initialGame();render();
- peer=new Peer();
- status('Room बन रहा है...');
- peer.on('open',id=>{$('myid').textContent='आपका Player ID / Room Code: '+id;$('copyBtn').disabled=false;status('Room तैयार! अपना Player ID दोस्त को भेजें।');});
+ activeRoomId=makeShortRoomId();
+ $('myid').textContent='आपका Room ID: '+activeRoomId+' (उदाहरण: RH1234)';
+ $('copyBtn').disabled=false;
+ status('Room ID दिख गया है। कनेक्शन तैयार हो रहा है...');
+ peer=new Peer(activeRoomId);
+ peer.on('open',id=>{
+  activeRoomId=id;
+  $('myid').textContent='आपका Room ID: '+id;
+  status('Room तैयार! दोस्त को यह ID दें।');
+ });
  peer.on('connection',c=>{
   if(conn&&conn.open){c.close();return;}
   conn=c;wireConnection();
  });
- peer.on('error',e=>status(e.type==='unavailable-id'?'यह छोटा Code पहले से इस्तेमाल है। नया Room बनाएं।':'Connection Error: '+e.type+' — दोबारा कोशिश करें।'));
+ peer.on('error',e=>{
+  status(e.type==='unavailable-id'?'यह Room ID पहले से उपयोग में है। नया Room बनाएं।':'कनेक्शन Error: '+e.type+' — इंटरनेट जाँचें और फिर कोशिश करें।');
+ });
 }
 function joinRoom(){
- const id=$('roomInput').value.trim();if(!id){status('दोस्त का Player ID डालें।');return;}
+ const id=$('roomInput').value.trim().toUpperCase();if(!id){status('दोस्त का Player ID डालें।');return;}
  if(peer){peer.destroy();peer=null;}conn=null;connected=false;isHost=false;myPlayer=2;game=null;render();
  peer=new Peer();status('आपका Player ID बन रहा है...');
  peer.on('open',myid=>{
@@ -201,7 +210,7 @@ function wireConnection(){
 $('hostBtn').onclick=startHost;
 $('joinBtn').onclick=joinRoom;
 $('shootBtn').onclick=shoot;
-$('copyBtn').onclick=async()=>{try{await navigator.clipboard.writeText(peer.id);status('Player ID copy हो गया!');}catch(e){status('Player ID को ऊपर से select करके copy करें।');}};
+$('copyBtn').onclick=async()=>{try{await navigator.clipboard.writeText(activeRoomId||peer.id);status('Room ID copy हो गया!');}catch(e){status('Player ID को ऊपर से select करके copy करें।');}};
 $('restartBtn').onclick=()=>{if(!isHost)return;game=initialGame();broadcast();render();status('नया गेम शुरू! Player 1 की बारी।');};
 $('pos').oninput=draw;$('aim').oninput=draw;
 $('power').oninput=()=>{};
