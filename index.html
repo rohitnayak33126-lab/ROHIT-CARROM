@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
@@ -67,6 +67,7 @@ function initialGame(){
   return {coins,turn:1,score:[0,0],moving:false,over:false,message:'Player 1 की बारी'};
 }
 function status(t){$('status').textContent=t;}
+function makeShortRoomId(){return 'ROHIT'+Math.floor(1000+Math.random()*9000);}
 function setControls(){
   const can=connected&&game&&!game.over&&!game.moving&&game.turn===myPlayer;
   $('shootBtn').disabled=!can;$('pos').disabled=!can;$('power').disabled=!can;$('aim').disabled=!can;
@@ -167,7 +168,7 @@ function startHost(){
   if(conn&&conn.open){c.close();return;}
   conn=c;wireConnection();
  });
- peer.on('error',e=>status('Connection Error: '+e.type+' — दोबारा कोशिश करें।'));
+ peer.on('error',e=>status(e.type==='unavailable-id'?'यह छोटा Code पहले से इस्तेमाल है। नया Room बनाएं।':'Connection Error: '+e.type+' — दोबारा कोशिश करें।'));
 }
 function joinRoom(){
  const id=$('roomInput').value.trim();if(!id){status('दोस्त का Player ID डालें।');return;}
