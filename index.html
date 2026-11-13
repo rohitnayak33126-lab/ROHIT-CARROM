@@ -77,7 +77,7 @@ function send(obj){if(conn&&conn.open)conn.send(obj);}
 function snapshot(){return JSON.parse(JSON.stringify(game));}
 function broadcast(){if(isHost)send({type:'state',game:snapshot()});}
 function updateScore(){
-  $('score').textContent=`आप: ${game.score[myPlayer-1]} | दोस्त: ${game.score[myPlayer===1?1:0]}`;
+  $('score').textContent=`ROHIT: ${game.score[myPlayer-1]} | DEV MAYANK RAJ: ${game.score[myPlayer===1?1:0]}`;
 }
 function draw(){
  ctx.clearRect(0,0,W,W);
